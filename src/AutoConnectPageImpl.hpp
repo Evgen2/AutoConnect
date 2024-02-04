@@ -1007,7 +1007,7 @@ String AutoConnectCore<T>::_getSystemUptime() {
 #if defined(ARDUINO_ARCH_ESP8266)
   unsigned long millisecs = millis();
 #elif defined(ARDUINO_ARCH_ESP32)
-  long  millisecs = esp_timer_get_time() / 1000;
+  int64_t  millisecs = esp_timer_get_time() / 1000;
 #endif
   int systemUpTimeM = static_cast<int>((millisecs / (1000 * 60)) % 60);
   int systemUpTimeH = static_cast<int>((millisecs / (1000 * 60 * 60)) % 24);
@@ -1277,7 +1277,8 @@ String AutoConnectCore<T>::_token_LIST_SSID(PageArgument& args) {
     page = args.arg("page").toInt();
   else {
     // Scan at a first time
-    _scanCount = WiFi.scanNetworks(false, true);
+//   _scanCount = WiFi.scanNetworks(false, true);
+    _scanCount = WiFi.scanNetworks(false, true, true);
     AC_DBG("%d network(s) found, ", (int)_scanCount);
   }
   // Prepare SSID list content building buffer
@@ -1376,7 +1377,9 @@ String AutoConnectCore<T>::_token_OPEN_SSID(PageArgument& args) {
 
   uint8_t creEntries = credit.entries();
   if (creEntries > 0)
-    _scanCount = WiFi.scanNetworks(false, true);
+    _scanCount = WiFi.scanNetworks(false, true, true);
+//   _scanCount = WiFi.scanNetworks(false, true);
+
   else
     ssidList += String(F("<p><b>" AUTOCONNECT_TEXT_NOSAVEDCREDENTIALS "</b></p>"));
 
