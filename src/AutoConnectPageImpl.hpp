@@ -1277,8 +1277,11 @@ String AutoConnectCore<T>::_token_LIST_SSID(PageArgument& args) {
     page = args.arg("page").toInt();
   else {
     // Scan at a first time
-//   _scanCount = WiFi.scanNetworks(false, true);
+#if defined(ARDUINO_ARCH_ESP8266)
+   _scanCount = WiFi.scanNetworks(false, true);
+#elif defined(ARDUINO_ARCH_ESP32)
     _scanCount = WiFi.scanNetworks(false, true, true);
+#endif
     AC_DBG("%d network(s) found, ", (int)_scanCount);
   }
   // Prepare SSID list content building buffer
@@ -1377,8 +1380,11 @@ String AutoConnectCore<T>::_token_OPEN_SSID(PageArgument& args) {
 
   uint8_t creEntries = credit.entries();
   if (creEntries > 0)
+#if defined(ARDUINO_ARCH_ESP8266)
+   _scanCount = WiFi.scanNetworks(false, true);
+#elif defined(ARDUINO_ARCH_ESP32)
     _scanCount = WiFi.scanNetworks(false, true, true);
-//   _scanCount = WiFi.scanNetworks(false, true);
+#endif
 
   else
     ssidList += String(F("<p><b>" AUTOCONNECT_TEXT_NOSAVEDCREDENTIALS "</b></p>"));

@@ -587,8 +587,11 @@ void AutoConnectCore<T>::handleRequest(void) {
         if (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000)) {
           disconnect(false, false);
           _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
-//        int8_t  sn = WiFi.scanNetworks(true, true);
+#if defined(ARDUINO_ARCH_ESP8266)
+        int8_t  sn = WiFi.scanNetworks(true, true);
+#elif defined(ARDUINO_ARCH_ESP32)
           int8_t  sn = WiFi.scanNetworks(true, true, true);
+#endif
 
           AC_DBG("autoReconnect %s\n", sn == WIFI_SCAN_RUNNING ? "running" : "failed");
           _attemptPeriod = millis();
@@ -929,8 +932,12 @@ bool AutoConnectCore<T>::_loadAvailCredential(const char* ssid, const AC_PRINCIP
   if (credential.entries() > 0) {
     // Scan the vicinity only when the saved credentials are existing.
     if (!ssid) {
-//    int8_t  nn = WiFi.scanNetworks(false, true);
+#if defined(ARDUINO_ARCH_ESP8266)
+       int8_t  nn = WiFi.scanNetworks(false, true);
+#elif defined(ARDUINO_ARCH_ESP32)
       int8_t  nn = WiFi.scanNetworks(false, true, true);
+#endif
+
       AC_DBG_DUMB(", %d network(s) found", (int)nn);
       if (nn > 0)
         return _seekCredential(principle, excludeCurrent ? AC_SEEKMODE_NEWONE : AC_SEEKMODE_ANY);
@@ -1467,6 +1474,7 @@ bool AutoConnectCore<T>::_classifyHandle(HTTPMethod method, String uri) {
  */
 template<typename T>
 void AutoConnectCore<T>::_purgePages(void) {
+
   _responsePage->clearElements();
   if (_currentPageElement) {
     _currentPageElement.reset();

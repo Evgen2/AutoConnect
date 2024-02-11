@@ -62,7 +62,12 @@ typedef enum {
 
 typedef struct {
   uint8_t ssid[32];
+#if defined(ARDUINO_ARCH_ESP8266)
+  uint8_t password[8];
+#elif defined(ARDUINO_ARCH_ESP32)
   uint8_t password[64];
+#endif
+
   uint8_t bssid[6];
   uint8_t dhcp;   /**< 0:DHCP, 1:Static IP */
   union _config {

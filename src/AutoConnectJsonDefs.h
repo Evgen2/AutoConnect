@@ -64,6 +64,7 @@ using ArduinoJsonBuffer = BasicJsonDocument<SpiRamAllocatorST>;
 #else
 #define AUTOCONNECT_JSONBUFFER_PRIMITIVE_SIZE AUTOCONNECT_JSONDOCUMENT_SIZE
 using ArduinoJsonBuffer = DynamicJsonDocument;
+//using ArduinoJsonBuffer = JsonDocument;
 #endif
 #endif
 
