@@ -163,7 +163,7 @@ class AutoConnectCore {
   uint8_t       _hiddenSSIDCount;
   int16_t       _scanCount;
   uint8_t       _connectCh;
-  unsigned long _portalAccessPeriod;
+  unsigned long _portalAccessPeriod=0;
   unsigned long _attemptPeriod;
   String        _indelibleSSID;
 

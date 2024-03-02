@@ -276,6 +276,7 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
 
         // Start the captive portal to make a new connection
         _portalAccessPeriod = millis();
+
         while (WiFi.status() != WL_CONNECTED && !_rfReset) {
           handleClient();
           // By an exit routine to escape from Captive portal
@@ -584,18 +585,22 @@ void AutoConnectCore<T>::handleRequest(void) {
       // intervals of time with AutoConnectConfig::reconnectInterval value
       // multiplied by AUTOCONNECT_UNITTIME.
       if (sc == WIFI_SCAN_FAILED) {
-        if (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000)) {
-          disconnect(false, false);
-          _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
+        if (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000))
+        {
+          if(millis() -  _portalAccessPeriod > AUTOCONNECT_UNITTIME * 1000)
+          {
+            disconnect(false, false);
+            _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
 #if defined(ARDUINO_ARCH_ESP8266)
         int8_t  sn = WiFi.scanNetworks(true, true);
 #elif defined(ARDUINO_ARCH_ESP32)
           int8_t  sn = WiFi.scanNetworks(true, true, true);
 #endif
 
-          AC_DBG("autoReconnect %s\n", sn == WIFI_SCAN_RUNNING ? "running" : "failed");
-          _attemptPeriod = millis();
-          (void)(sn);
+            AC_DBG("autoReconnect %s\n", sn == WIFI_SCAN_RUNNING ? "running" : "failed");
+            _attemptPeriod = millis();
+            (void)(sn);
+          }
         }
       }
 
