@@ -1607,7 +1607,9 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
       delay(10);
       localIP = WiFi.localIP();
     }
-    AC_DBG_DUMB(" IP:%s\n", localIP.toString().c_str());
+    AC_DBG_DUMB(" IP:%s", localIP.toString().c_str());
+    AC_DBG_DUMB(" NETMASK:%s\n", WiFi.subnetMask().toString().c_str());
+
     if (_onConnectExit)
       _onConnectExit(localIP);
   }
