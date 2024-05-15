@@ -252,7 +252,8 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
       // Activate the AP mode with configured softAP and start the access point.
       _softAP();
       _currentHostIP = WiFi.softAPIP();
-
+       AC_DBG("======== softAP start\n");
+      
       // Fork to the exit routine that starts captive portal.
       cs = _onDetectExit ? _onDetectExit(_currentHostIP) : true;
 
@@ -318,6 +319,8 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
       AC_DBG("Suppress autoRise\n");
     }
   }
+
+  AC_DBG("======== softAP ....\n");
 
   // It doesn't matter the connection status for launching the Web server.
   if (!_responsePage)
@@ -589,6 +592,7 @@ void AutoConnectCore<T>::handleRequest(void) {
         {
           if(millis() -  _portalAccessPeriod > AUTOCONNECT_UNITTIME * 1000)
           {
+AC_DBG("!!!!1 handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d \n", (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval);
             disconnect(false, false);
             _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
 #if defined(ARDUINO_ARCH_ESP8266)
@@ -1555,6 +1559,7 @@ unsigned int AutoConnectCore<T>::_toWiFiQuality(int32_t rssi) {
   return qu;
 }
 
+
 /**
  * Wait for establishment of the connection until the specified time expires.
  * @param  timeout  Expiration time by millisecond unit.
@@ -1590,8 +1595,13 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
         break;
       }
     }
+    if(wifiStatus == WL_NO_SSID_AVAIL || wifiStatus == WL_CONNECT_FAILED)
+        break;
+
     if (ct - pt > 300) {
       AC_DBG_DUMB("%c", '.');
+      AC_DBG("%d", wifiStatus);
+      
       pt = millis();
     }
   }
@@ -1614,7 +1624,14 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
       _onConnectExit(localIP);
   }
   else if (!exitInterrupt) {
-    AC_DBG_DUMB("timeout\n");
+#if AC_DEBUG 
+    if(wifiStatus == WL_NO_SSID_AVAIL)
+      AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password\n");
+    else if(wifiStatus == WL_CONNECT_FAILED)
+      AC_DBG_DUMB("CONNECT_FAILED\n");
+    else
+      AC_DBG_DUMB("timeout\n");
+#endif   
   }
   _attemptPeriod = millis();  // Save to measure the interval between an autoReconnect.
   return wifiStatus;

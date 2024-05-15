@@ -1276,12 +1276,23 @@ String AutoConnectCore<T>::_token_LIST_SSID(PageArgument& args) {
   if (args.hasArg(String(F("page"))))
     page = args.arg("page").toInt();
   else {
+    int16_t Scan_rc; 
     // Scan at a first time
 #if defined(ARDUINO_ARCH_ESP8266)
-   _scanCount = WiFi.scanNetworks(false, true);
+    Scan_rc = WiFi.scanNetworks(false, true);
 #elif defined(ARDUINO_ARCH_ESP32)
-    _scanCount = WiFi.scanNetworks(false, true, true);
+    Scan_rc = WiFi.scanNetworks(false, true, true);
 #endif
+    if(Scan_rc >= 0)
+    {   _scanCount = Scan_rc;
+    } else {
+      if(Scan_rc == WIFI_SCAN_FAILED)
+        AC_DBG("WiFi.scanNetworks failed\n");
+      else
+        AC_DBG("WiFi.scanNetworks failed, rc %d\n", (int)Scan_rc);
+      return _emptyString;
+    }
+ 
     AC_DBG("%d network(s) found, ", (int)_scanCount);
   }
   // Prepare SSID list content building buffer
@@ -1368,6 +1379,8 @@ String AutoConnectCore<T>::_token_OPEN_SSID(PageArgument& args) {
   char  rssiCont[32];
   char  trash[80] = {'\0'};
   char  slCont[sizeof(_ssidList) + sizeof(AUTOCONNECT_PARAMID_CRED) + sizeof(station_config_t::ssid) + sizeof(rssiCont) + sizeof(trash) + sizeof(_ssidLock)];
+  int16_t Scan_rc; 
+
   AutoConnectCredential credit(_apConfig.boundaryOffset);
 
   if (_indelibleSSID.length()) {
@@ -1380,13 +1393,23 @@ String AutoConnectCore<T>::_token_OPEN_SSID(PageArgument& args) {
 
   uint8_t creEntries = credit.entries();
   if (creEntries > 0)
+  {
 #if defined(ARDUINO_ARCH_ESP8266)
-   _scanCount = WiFi.scanNetworks(false, true);
-#elif defined(ARDUINO_ARCH_ESP32)
-    _scanCount = WiFi.scanNetworks(false, true, true);
+    Scan_rc  = WiFi.scanNetworks(false, true);
+#elif defined(ARDUINO_ARCH_ESP32)    
+    Scan_rc = WiFi.scanNetworks(false, true, true);
 #endif
+    if(Scan_rc >= 0)
+    {   _scanCount = Scan_rc;
+    } else {
+      if(Scan_rc == WIFI_SCAN_FAILED)
+        AC_DBG("WiFi.scanNetworks(2) failed\n");
+      else
+        AC_DBG("WiFi.scanNetworks(2) failed, rc %d\n", (int)Scan_rc);
+      _scanCount = 0;
+    }
 
-  else
+  } else
     ssidList += String(F("<p><b>" AUTOCONNECT_TEXT_NOSAVEDCREDENTIALS "</b></p>"));
 
   for (uint8_t i = 0; i < creEntries; i++) {
