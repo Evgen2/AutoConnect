@@ -1624,7 +1624,7 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
       _onConnectExit(localIP);
   }
   else if (!exitInterrupt) {
-#if AC_DEBUG 
+#ifdef AC_DEBUG 
     if(wifiStatus == WL_NO_SSID_AVAIL)
       AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password\n");
     else if(wifiStatus == WL_CONNECT_FAILED)
