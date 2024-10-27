@@ -53,7 +53,7 @@ const char AutoConnectCore<T>::_CSS_BASE[] PROGMEM = {
   "input{"
     "-moz-appearance:none;"
     "-webkit-appearance:none;"
-    "font-size:0.9em;"
+    "font-size:1.1em;"
     "margin:8px 0 auto"
   "}"
   ".lap{"
