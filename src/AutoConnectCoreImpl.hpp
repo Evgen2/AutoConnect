@@ -188,7 +188,7 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
         disconnect(false, true);
         cs = WiFi.begin(ssid, passphrase) != WL_CONNECT_FAILED;
       }
-      AC_DBG("WiFi.begin(%s%s%s)", ssid == nullptr ? "" : ssid, passphrase == nullptr ? "" : ",", passphrase == nullptr ? "" : passphrase);
+      AC_DBG("0 WiFi.begin(%s%s%s)", ssid == nullptr ? "" : ssid, passphrase == nullptr ? "" : ",", passphrase == nullptr ? "" : passphrase);
       _portalStatus |= AC_INPROGRESS;
 
       // Override the validity of 1st-WiFi.begin by the availability of available SSIDs.
@@ -218,10 +218,11 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
         // Try to reconnect with a stored credential.
         AC_DBG_DUMB(", %s(%s) loaded\n", ssid_c, _apConfig.principle == AC_PRINCIPLE_RECENT ? "RECENT" : "RSSI");
         _portalStatus |= AC_AUTORECONNECT;
+        _portalAccess_sts = 0;
         const char* psk = strlen(password_c) ? password_c : nullptr;
         _configSTA(IPAddress(_credential.config.sta.ip), IPAddress(_credential.config.sta.gateway), IPAddress(_credential.config.sta.netmask), IPAddress(_credential.config.sta.dns1), IPAddress(_credential.config.sta.dns2));
         cs = WiFi.begin(ssid_c, psk) != WL_CONNECT_FAILED;
-        AC_DBG("WiFi.begin(%s%s%s)", ssid_c, psk == nullptr ? "" : ",", psk == nullptr ? "" : psk);
+        AC_DBG("1 WiFi.begin(%s%s%s)", ssid_c, psk == nullptr ? "" : ",", psk == nullptr ? "" : psk);
         if (cs) {
           _portalStatus |= AC_INPROGRESS;
           cs = _waitForConnect(timeout) == WL_CONNECTED;
@@ -276,7 +277,8 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
         _apConfig.retainPortal = true;
 
         // Start the captive portal to make a new connection
-        _portalAccessPeriod = millis();
+//        _portalAccessPeriod = millis();
+              AC_DBG("Start the captive portal\n");
 
         while (WiFi.status() != WL_CONNECTED && !_rfReset) {
           handleClient();
@@ -306,6 +308,7 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
         // Captive portal staying time exceeds timeout,
         // Close the portal if an option for keeping the portal is false.
         if (!cs && (_portalStatus & (AC_TIMEOUT | AC_INTERRUPT))) {
+          _portalAccess_sts = 0;
           if (_apConfig.retainPortal) {
             _purgePages();
             AC_DBG("Maintain portal\n");
@@ -590,11 +593,15 @@ void AutoConnectCore<T>::handleRequest(void) {
       if (sc == WIFI_SCAN_FAILED) {
         if (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000))
         {
-          if(millis() -  _portalAccessPeriod > AUTOCONNECT_UNITTIME * 1000)
+          if(_portalAccess_sts == 0 || (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
           {
-AC_DBG("!!!!1 handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d \n", (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval);
-            disconnect(false, false);
+//AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
+//  _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
+            AC_DBG("!!! _portal disconnect\n");
+              disconnect(false, false);
             _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
+            _portalAccess_sts = 0;
+
 #if defined(ARDUINO_ARCH_ESP8266)
         int8_t  sn = WiFi.scanNetworks(true, true);
 #elif defined(ARDUINO_ARCH_ESP32)
@@ -602,9 +609,10 @@ AC_DBG("!!!!1 handleRequest millis() -  _portalAccessPeriod = %d _apConfig.recon
 #endif
 
             AC_DBG("autoReconnect %s\n", sn == WIFI_SCAN_RUNNING ? "running" : "failed");
-            _attemptPeriod = millis();
+//            _attemptPeriod = millis();
             (void)(sn);
-          }
+          } 
+          _attemptPeriod = millis();
         }
       }
 
@@ -639,20 +647,24 @@ AC_DBG("!!!!1 handleRequest millis() -  _portalAccessPeriod = %d _apConfig.recon
     // will be triggered by disconnection during handleRequests.
     WiFi.scanDelete();
 
+//--    AC_DBG("2 _connectCh %d _apConfig.channel %d\n", _connectCh, _apConfig.channel);
     // An attempt to establish a new AP.
-    int32_t ch = _connectCh == 0 ? _apConfig.channel : _connectCh;
+//--    int32_t ch = _connectCh == 0 ? _apConfig.channel : _connectCh;
     char ssid_c[sizeof(station_config_t::ssid) + 1];
     char password_c[sizeof(station_config_t::password) + 1];
     *ssid_c = '\0';
     strncat(ssid_c, reinterpret_cast<const char*>(_credential.ssid), sizeof(ssid_c) - 1);
     *password_c = '\0';
     strncat(password_c, reinterpret_cast<const char*>(_credential.password), sizeof(password_c) - 1);
-    AC_DBG("WiFi.begin(%s%s%s) ch(%d)", ssid_c, strlen(password_c) ? "," : "", strlen(password_c) ? password_c : "", (int)ch);
+//    AC_DBG("2 WiFi.begin(%s%s%s) ch(%d)", ssid_c, strlen(password_c) ? "," : "", strlen(password_c) ? password_c : "", (int)ch);
+    AC_DBG("2 WiFi.begin(%s%s%s)", ssid_c, strlen(password_c) ? "," : "", strlen(password_c) ? password_c : "");
     _redirectURI = "";
 
     // Establish a WiFi connection with the access point.
     _portalStatus &= ~AC_TIMEOUT;
-    if (WiFi.begin(ssid_c, password_c, ch) != WL_CONNECT_FAILED) {
+    _portalAccess_sts = 0;
+//  if (WiFi.begin(ssid_c, password_c, ch) != WL_CONNECT_FAILED) { //ch ???
+    if (WiFi.begin(ssid_c, password_c) != WL_CONNECT_FAILED) {
       _portalStatus |= AC_INPROGRESS;
       // Wait for the connection attempt to complete and send a response
       // page to notify the connection result.
@@ -1217,7 +1229,9 @@ bool AutoConnectCore<T>::_hasTimeout(unsigned long timeout) {
   staNum = WiFi.softAPgetStationNum();
 #endif
   if (staNum)
-    _portalAccessPeriod = millis();
+  {  _portalAccessPeriod = millis();
+      AC_DBG("_portalAccessPeriod updated %d\n", _portalAccessPeriod);
+  }
 
   return (millis() - _portalAccessPeriod > timeout) ? true : false;
 }
@@ -1332,6 +1346,9 @@ String AutoConnectCore<T>::_induceConnect(PageArgument& args) {
   for (uint8_t nn = 0; nn < _scanCount; nn++) {
     String  ssid = WiFi.SSID(nn);
     int8_t  rssi = WiFi.RSSI(nn);
+
+    AC_DBG("ssid %s rssi %d channel %d\n", ssid, rssi,WiFi.channel(nn));
+
     if (!strncmp(ssid.c_str(), reinterpret_cast<const char*>(_credential.ssid), sizeof(station_config_t::ssid))) {
       if (rssi > maxRSSI) {
         _connectCh = WiFi.channel(nn);
@@ -1447,6 +1464,8 @@ template<typename T>
 bool AutoConnectCore<T>::_classifyHandle(HTTPMethod method, String uri) {
   AC_UNUSED(method);
   _portalAccessPeriod = millis();
+  _portalAccess_sts = 1;
+  AC_DBG("1 _portalAccessPeriod updated %d\n", _portalAccessPeriod);
   AC_DBG("Host:%s,%s", _webServer->hostHeader().c_str(), uri.c_str());
 
   // Here, classify requested uri
@@ -1577,6 +1596,7 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
   _getConfigSTA(&appliedConfig);
   *(reinterpret_cast<char*>(appliedConfig.ssid) + sizeof station_config_t::ssid) = '\0';
   String  appliedSSID = String(reinterpret_cast<char*>(appliedConfig.ssid));
+  yield();
 
   // Connection waiting
   while ((wifiStatus = WiFi.status()) != WL_CONNECTED) {
@@ -1599,8 +1619,7 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
         break;
 
     if (ct - pt > 300) {
-      AC_DBG_DUMB("%c", '.');
-      AC_DBG("%d", wifiStatus);
+      AC_DBG(".%d", wifiStatus);
       
       pt = millis();
     }
@@ -1626,11 +1645,11 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
   else if (!exitInterrupt) {
 #ifdef AC_DEBUG 
     if(wifiStatus == WL_NO_SSID_AVAIL)
-      AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password\n");
+      AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password, dt %d \n", millis() - wt);
     else if(wifiStatus == WL_CONNECT_FAILED)
       AC_DBG_DUMB("CONNECT_FAILED\n");
     else
-      AC_DBG_DUMB("timeout\n");
+      AC_DBG_DUMB("timeout (%d)\n",wifiStatus);
 #endif   
   }
   _attemptPeriod = millis();  // Save to measure the interval between an autoReconnect.

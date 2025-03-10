@@ -11,7 +11,7 @@
 #define _AUTOCONNECTDEFS_H_
 
 // Uncomment the following AC_DEBUG to enable debug output.
-//#define AC_DEBUG
+//#define AC_DEBUG 
 
 // Debug output destination can be defined externally with AC_DEBUG_PORT
 #ifndef AC_DEBUG_PORT
@@ -167,6 +167,13 @@
 #ifndef AUTOCONNECT_UNITTIME
 #define AUTOCONNECT_UNITTIME    30
 #endif
+
+
+// Number of seconds for portal timeout (user does nothing)
+#ifndef AUTOCONNECT_PORTALTIMEOUT
+#define AUTOCONNECT_PORTALTIMEOUT    120
+#endif
+
 
 // Time-out limitation when AutoConnect::begin [ms]
 #ifndef AUTOCONNECT_TIMEOUT
