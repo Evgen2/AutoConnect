@@ -48,6 +48,8 @@ class AutoConnectCore {
     AC_CAPTIVEPORTAL  = 0x40, /**< .1.. ....  Captive portal is available. */
     AC_INPROGRESS     = 0x80  /**< 1... ....  WiFi.begin in progress. */
   } AC_PORTALSTATE_t;         /**< AutoConnect::begin and handleClient status of the portal during the period. */
+  
+  int  _ac_wifi_scan_sc = 0;
 
   AutoConnectCore();
   explicit AutoConnectCore(WebServer& webServer);

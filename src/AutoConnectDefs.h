@@ -10,13 +10,44 @@
 #ifndef _AUTOCONNECTDEFS_H_
 #define _AUTOCONNECTDEFS_H_
 
+
 // Uncomment the following AC_DEBUG to enable debug output.
 //#define AC_DEBUG 
 
 // Debug output destination can be defined externally with AC_DEBUG_PORT
 #ifndef AC_DEBUG_PORT
-#define AC_DEBUG_PORT Serial
+//#define AC_DEBUG_PORT Serial
+#define AC_DEBUG_PORT Serial_db
+
+//#define USE_SMART_DEBUG
+#ifdef USE_SMART_DEBUG
+#ifndef SMART_DEBUG
+#define SMART_DEBUG
+
+class Serial_Debug
+{
+  public:
+    Serial_Debug(void)
+    {
+
+    }
+    unsigned int printf(const char *format, ...);
+    unsigned int write(unsigned char c);
+    unsigned int write(const unsigned char * s, unsigned int  n);
+
+};
+
+extern  Serial_Debug Serial_db;
+#endif // SMART_DEBUG
+
+#else 
+#define  Serial_db()
+
+#endif // USE_SMART_DEBUG
+
 #endif // !AC_DEBUG_PORT
+
+
 #ifdef AC_DEBUG
 #define AC_DBG_DUMB(fmt, ...) do {AC_DEBUG_PORT.printf_P((PGM_P)PSTR(fmt), ## __VA_ARGS__ );} while (0)
 #ifdef AC_DEBUG_LINETRACE

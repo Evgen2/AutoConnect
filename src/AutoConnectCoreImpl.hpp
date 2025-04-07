@@ -247,7 +247,11 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
     if (_apConfig.autoRise) {
 
       // Change WiFi working mode, Enable AP with STA
-      WiFi.setAutoConnect(false);
+#if defined(ARDUINO_ARCH_ESP8266)
+    WiFi.setAutoConnect(false);
+#elif defined(ARDUINO_ARCH_ESP32)
+    WiFi.setAutoReconnect(false);
+#endif      
       disconnect(false, true);
 
       // Activate the AP mode with configured softAP and start the access point.
@@ -541,10 +545,12 @@ template<typename T>
 void AutoConnectCore<T>::handleClient(void) {
   // Is there DNS Server process next request?
   if (_dnsServer)
-    _dnsServer->processNextRequest();
+  {  _dnsServer->processNextRequest();
+  }
   // handleClient valid only at _webServer activated.
   if (_webServer)
-    _webServer->handleClient();
+  {  _webServer->handleClient();
+  }
 
   handleRequest();
 }
@@ -555,8 +561,12 @@ void AutoConnectCore<T>::handleClient(void) {
 template<typename T>
 void AutoConnectCore<T>::handleRequest(void) {
   bool  skipPostTicker;
+static int old_status;
 
-  // Controls reconnection and portal startup when WiFi is disconnected.
+//  if(WiFi.status() != old_status)
+//      Serial_db.printf("!!!!2 handleRequest: WiFi.status = %d\n",WiFi.status());
+
+// Controls reconnection and portal startup when WiFi is disconnected.
   if (WiFi.status() != WL_CONNECTED) {
     _portalStatus &= ~AC_ESTABLISHED;
 
@@ -566,11 +576,19 @@ void AutoConnectCore<T>::handleRequest(void) {
     if (_apConfig.retainPortal && _apConfig.autoRise) {
       // Cancel AutoReconnect to ensure detection for queries to penetrate
       // to the internet from a client.
-      if (WiFi.getAutoConnect())
+#if defined(ARDUINO_ARCH_ESP8266)
+    if (WiFi.getAutoConnect())
+#elif defined(ARDUINO_ARCH_ESP32)
+    if (WiFi.getAutoReconnect())
+#endif
+      {
+        AC_DBG("!!!!4 setAutoReconnect(false)\n");
         WiFi.setAutoReconnect(false);
+      }
 
       // Restart the responder for the captive portal detection.
       if (!(WiFi.getMode() & WIFI_AP)) {
+        AC_DBG("!!!!6 _softAP\n");
         _softAP();
         _currentHostIP = WiFi.softAPIP();
       }
@@ -591,12 +609,20 @@ void AutoConnectCore<T>::handleRequest(void) {
       // intervals of time with AutoConnectConfig::reconnectInterval value
       // multiplied by AUTOCONNECT_UNITTIME.
       if (sc == WIFI_SCAN_FAILED) {
-        if (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000))
+        if(old_status == WL_CONNECTED) 
+            AC_DBG("!!!!8 WIFI_SCAN_FAILED %d (%d)\n", millis() - _attemptPeriod, (unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000);
+        if((old_status == WL_CONNECTED) || (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000)))
         {
-          if(_portalAccess_sts == 0 || (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
+            AC_DBG("!!!!9 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
+            _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
+
+          if(((_portalAccess_sts == 0) && (old_status == WL_CONNECTED))|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
           {
 //AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
 //  _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
+AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
+  _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
+AC_DBG("!!! _portal disconnect\n");
             AC_DBG("!!! _portal disconnect\n");
               disconnect(false, false);
             _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
@@ -605,8 +631,10 @@ void AutoConnectCore<T>::handleRequest(void) {
 #if defined(ARDUINO_ARCH_ESP8266)
         int8_t  sn = WiFi.scanNetworks(true, true);
 #elif defined(ARDUINO_ARCH_ESP32)
-          int8_t  sn = WiFi.scanNetworks(true, true, true);
+        int8_t  sn = WiFi.scanNetworks(true, true, true);
+//          int8_t  sn = WiFi.scanNetworks(true, false, true);
 #endif
+AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
 
             AC_DBG("autoReconnect %s\n", sn == WIFI_SCAN_RUNNING ? "running" : "failed");
 //            _attemptPeriod = millis();
@@ -627,12 +655,16 @@ void AutoConnectCore<T>::handleRequest(void) {
             _rfConnect = true;
           }
         }
+        _ac_wifi_scan_sc = sc; //
         WiFi.scanDelete();
       }
     }
+    old_status = WiFi.status();
   }
   else
-    _attemptPeriod = millis();
+  {  _attemptPeriod = millis();
+    old_status = WL_CONNECTED;
+  }
 
   // Handling processing requests to AutoConnect.
   if (_rfConnect) {
@@ -1667,6 +1699,7 @@ void AutoConnectCore<T>::_setReconnect(const AC_STARECONNECT_t order) {
 #if defined(ARDUINO_ARCH_ESP32)
   if (order == AC_RECONNECT_SET) {
     _disconnectEventId = WiFi.onEvent([](WiFiEvent_t e, WiFiEventInfo_t info) {
+      AC_DBG("!!!! 5 STA lost connection:%d\n", info.AC_ESP_WIFIEVENTINFO_DECLARE(disconnected).reason);
       AC_DBG("STA lost connection:%d\n", info.AC_ESP_WIFIEVENTINFO_DECLARE(disconnected).reason);
       AC_DBG("STA connection %s\n", WiFi.reconnect() ? "restored" : "failed");
     }, WiFiEvent_t::AC_ESP_WIFIEVENT_DECLARE(AP_STADISCONNECTED));
