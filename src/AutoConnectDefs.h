@@ -17,12 +17,13 @@
 // Debug output destination can be defined externally with AC_DEBUG_PORT
 #ifndef AC_DEBUG_PORT
 //#define AC_DEBUG_PORT Serial
-#define AC_DEBUG_PORT Serial_db
 
 //#define USE_SMART_DEBUG
 #ifdef USE_SMART_DEBUG
 #ifndef SMART_DEBUG
 #define SMART_DEBUG
+
+#define AC_DEBUG_PORT Serial_db
 
 class Serial_Debug
 {
@@ -38,10 +39,12 @@ class Serial_Debug
 };
 
 extern  Serial_Debug Serial_db;
+#else  //SMART_DEBUG
+#define  Serial_db  Serial
 #endif // SMART_DEBUG
 
-#else 
-#define  Serial_db()
+#else  //USE_SMART_DEBUG
+#define AC_DEBUG_PORT Serial
 
 #endif // USE_SMART_DEBUG
 

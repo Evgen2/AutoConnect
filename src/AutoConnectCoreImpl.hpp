@@ -610,7 +610,7 @@ static int old_status;
       // multiplied by AUTOCONNECT_UNITTIME.
       if (sc == WIFI_SCAN_FAILED) {
         if(old_status == WL_CONNECTED) 
-            AC_DBG("!!!!8 WIFI_SCAN_FAILED %d (%d)\n", millis() - _attemptPeriod, (unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000);
+            AC_DBG("!!!!8 WIFI_SCAN_FAILED %ld (%ld)\n", millis() - _attemptPeriod, (unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000);
         if((old_status == WL_CONNECTED) || (millis() - _attemptPeriod > ((unsigned long)_apConfig.reconnectInterval * AUTOCONNECT_UNITTIME * 1000)))
         {
             AC_DBG("!!!!9 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
@@ -623,10 +623,10 @@ static int old_status;
 AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
   _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
 AC_DBG("!!! _portal disconnect\n");
-            AC_DBG("!!! _portal disconnect\n");
               disconnect(false, false);
             _portalStatus &= ~(AC_AUTORECONNECT | AC_INTERRUPT | ~0xf);
             _portalAccess_sts = 0;
+            AC_DBG("!!! portalStatus %x\n", _portalStatus);
 
 #if defined(ARDUINO_ARCH_ESP8266)
         int8_t  sn = WiFi.scanNetworks(true, true);
@@ -663,6 +663,27 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
   }
   else
   {  _attemptPeriod = millis();
+	if(old_status != WL_CONNECTED)
+	{			
+	    AC_DBG("WiFi WL_CONNECTED, old_status %d _portalStatus %d\n",old_status, _portalStatus);
+	    IPAddress localIP = WiFi.localIP();
+    // The esp8266 station reconnection has a problem and can not get
+    // the IP probably. We have to wait until we get the IP.
+	    while ((uint32_t)localIP == 0UL) {
+	      delay(10);
+	      localIP = WiFi.localIP();
+	    }
+
+	    AC_DBG_DUMB(" IP:%s", localIP.toString().c_str());
+	    AC_DBG_DUMB(" NETMASK:%s\n", WiFi.subnetMask().toString().c_str());
+	    if(!(_portalStatus & AC_ESTABLISHED))
+	    {
+	    	if (_onConnectExit)
+	      		_onConnectExit(localIP);
+	    	 _portalStatus |= AC_ESTABLISHED;
+	    }
+        }
+
     old_status = WL_CONNECTED;
   }
 
@@ -1262,7 +1283,7 @@ bool AutoConnectCore<T>::_hasTimeout(unsigned long timeout) {
 #endif
   if (staNum)
   {  _portalAccessPeriod = millis();
-      AC_DBG("_portalAccessPeriod updated %d\n", _portalAccessPeriod);
+      AC_DBG("_portalAccessPeriod updated %ld\n", _portalAccessPeriod);
   }
 
   return (millis() - _portalAccessPeriod > timeout) ? true : false;
@@ -1379,7 +1400,7 @@ String AutoConnectCore<T>::_induceConnect(PageArgument& args) {
     String  ssid = WiFi.SSID(nn);
     int8_t  rssi = WiFi.RSSI(nn);
 
-    AC_DBG("ssid %s rssi %d channel %d\n", ssid, rssi,WiFi.channel(nn));
+    AC_DBG("ssid %s rssi %d channel %d\n", ssid.c_str(), rssi,WiFi.channel(nn));
 
     if (!strncmp(ssid.c_str(), reinterpret_cast<const char*>(_credential.ssid), sizeof(station_config_t::ssid))) {
       if (rssi > maxRSSI) {
@@ -1497,7 +1518,7 @@ bool AutoConnectCore<T>::_classifyHandle(HTTPMethod method, String uri) {
   AC_UNUSED(method);
   _portalAccessPeriod = millis();
   _portalAccess_sts = 1;
-  AC_DBG("1 _portalAccessPeriod updated %d\n", _portalAccessPeriod);
+  AC_DBG("1 _portalAccessPeriod updated %ld\n", _portalAccessPeriod);
   AC_DBG("Host:%s,%s", _webServer->hostHeader().c_str(), uri.c_str());
 
   // Here, classify requested uri
@@ -1677,7 +1698,7 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
   else if (!exitInterrupt) {
 #ifdef AC_DEBUG 
     if(wifiStatus == WL_NO_SSID_AVAIL)
-      AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password, dt %d \n", millis() - wt);
+      AC_DBG_DUMB("NO_SSID_AVAIL/Wrong password, dt %ld \n", millis() - wt);
     else if(wifiStatus == WL_CONNECT_FAILED)
       AC_DBG_DUMB("CONNECT_FAILED\n");
     else

@@ -103,6 +103,13 @@ Full documentation is available on https://Hieromon.github.io/AutoConnect, some 
 
 ## Change log
 
+### [1.4.6] Jun. 15, 2025
+- Fix onConnect call for AutoConnect.onConnect(onConnect). In some cases the onConnect() call did not occur.
+- add USE_SMART_DEBUG macro  
+
+### [1.4.2b] Feb. 4, 2024 - [1.4.5] Apr. 7 2025
+- Fixes and updated for [SmartTherm] (https://github.com/Evgen2/SmartTherm)
+
 ### [1.4.2] Jan. 31, 2023
 - Supports whileConnecting exit called while waiting for WiFi connection. (Discussions [#553](https://github.com/Hieromon/AutoConnect/issues/553))
 - Added AutoConnect::portalStatus function.
