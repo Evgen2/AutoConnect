@@ -103,6 +103,10 @@ Full documentation is available on https://Hieromon.github.io/AutoConnect, some 
 
 ## Change log
 
+### [1.4.7] Nov. 8, 2025
+* prevent long time spending at waitForConnect() and scanNetworks() without callback function call
+
+
 ### [1.4.6] Jun. 15, 2025
 - Fix onConnect call for AutoConnect.onConnect(onConnect). In some cases the onConnect() call did not occur.
 - add USE_SMART_DEBUG macro  

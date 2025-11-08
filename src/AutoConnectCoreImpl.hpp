@@ -45,6 +45,9 @@
 template<typename T>
 AutoConnectCore<T>::AutoConnectCore() : _scanCount(0), _menuTitle(_apConfig.title) {
   memset(&_credential, 0x00, sizeof(station_config_t));
+    max_time_use = 1000; 
+    callback_at_maxtime = nullptr;
+
 }
 
 /**
@@ -541,18 +544,27 @@ uint16_t AutoConnectCore<T>::getEEPROMUsedSize(void) {
  * AutoConnect WEB interface.
  * No effects when the web server is not available.
  */
+extern RTC_NOINIT_ATTR unsigned short int bootSts1;
+
 template<typename T>
 void AutoConnectCore<T>::handleClient(void) {
   // Is there DNS Server process next request?
   if (_dnsServer)
-  {  _dnsServer->processNextRequest();
+  { bootSts1 = 21;
+
+     _dnsServer->processNextRequest();
   }
   // handleClient valid only at _webServer activated.
   if (_webServer)
-  {  _webServer->handleClient();
+  { bootSts1 = 22;
+
+     _webServer->handleClient();
   }
+bootSts1 = 23;
 
   handleRequest();
+bootSts1 = 24;
+
 }
 
 /**
@@ -565,6 +577,7 @@ static int old_status;
 
 //  if(WiFi.status() != old_status)
 //      Serial_db.printf("!!!!2 handleRequest: WiFi.status = %d\n",WiFi.status());
+bootSts1 = 71;
 
 // Controls reconnection and portal startup when WiFi is disconnected.
   if (WiFi.status() != WL_CONNECTED) {
@@ -585,6 +598,7 @@ static int old_status;
         AC_DBG("!!!!4 setAutoReconnect(false)\n");
         WiFi.setAutoReconnect(false);
       }
+bootSts1 = 72;
 
       // Restart the responder for the captive portal detection.
       if (!(WiFi.getMode() & WIFI_AP)) {
@@ -598,6 +612,7 @@ static int old_status;
           _startDNSServer();
       }
     }
+bootSts1 = 73;
 
     // AutoConnectConfig::reconnectInterval allows a dynamic connection
     // to a known access point without blocking the execution of
@@ -615,9 +630,13 @@ static int old_status;
         {
             AC_DBG("!!!!9 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
             _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
+            AC_DBG("!!!*9  millis() = %ld _portalAccessPeriod=%ld \n",
+              millis(), _portalAccessPeriod);
 
-          if(((_portalAccess_sts == 0) && (old_status == WL_CONNECTED))|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
+          if(( old_status == WL_CONNECTED)|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
+//          if(((_portalAccess_sts == 0) && (old_status == WL_CONNECTED))|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
           {
+bootSts1 = 74;
 //AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
 //  _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
 AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
@@ -657,6 +676,8 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
         }
         _ac_wifi_scan_sc = sc; //
         WiFi.scanDelete();
+AC_DBG("!!!! WiFi.scanDelete\n");
+bootSts1 = 75;
       }
     }
     old_status = WiFi.status();
@@ -669,11 +690,13 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
 	    IPAddress localIP = WiFi.localIP();
     // The esp8266 station reconnection has a problem and can not get
     // the IP probably. We have to wait until we get the IP.
+bootSts1 = 76;
 	    while ((uint32_t)localIP == 0UL) {
 	      delay(10);
 	      localIP = WiFi.localIP();
 	    }
 
+bootSts1 = 77;
 	    AC_DBG_DUMB(" IP:%s", localIP.toString().c_str());
 	    AC_DBG_DUMB(" NETMASK:%s\n", WiFi.subnetMask().toString().c_str());
 	    if(!(_portalStatus & AC_ESTABLISHED))
@@ -686,6 +709,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
 
     old_status = WL_CONNECTED;
   }
+bootSts1 = 78;
 
   // Handling processing requests to AutoConnect.
   if (_rfConnect) {
@@ -699,6 +723,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
     // Purge scan results to initialize the asynchronous network scan that
     // will be triggered by disconnection during handleRequests.
     WiFi.scanDelete();
+bootSts1 = 79;
 
 //--    AC_DBG("2 _connectCh %d _apConfig.channel %d\n", _connectCh, _apConfig.channel);
     // An attempt to establish a new AP.
@@ -717,15 +742,21 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
     _portalStatus &= ~AC_TIMEOUT;
     _portalAccess_sts = 0;
 //  if (WiFi.begin(ssid_c, password_c, ch) != WL_CONNECT_FAILED) { //ch ???
+bootSts1 = 80;
     if (WiFi.begin(ssid_c, password_c) != WL_CONNECT_FAILED) {
       _portalStatus |= AC_INPROGRESS;
       // Wait for the connection attempt to complete and send a response
       // page to notify the connection result.
       // End the current session to complete a response page transmission.
       _rsConnect = _waitForConnect(_apConfig.beginTimeout);
+bootSts1 = 81;
       do {
         _webServer->handleClient();
+        Serial.printf("waitForConnect running %ld\n", millis());
+
       } while (_webServer->client());
+
+bootSts1 = 80;
 
       if (_rsConnect == WL_CONNECTED) {
         // WLAN successfully connected then release the DNS server.
@@ -739,6 +770,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
           AC_DBG("Maintain SoftAP\n");
         }
 
+bootSts1 = 83;
         // WiFi linked, validate availability
         if (WiFi.BSSID() != NULL) {
           // Successfully conencted
@@ -764,6 +796,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
         // Leave station connection completely
         wl_status_t wl = WiFi.status();
         unsigned long tm = millis();
+bootSts1 = 83;
         while (wl != WL_IDLE_STATUS && wl != WL_DISCONNECTED && wl != WL_NO_SSID_AVAIL) {
           if (millis() - tm > 3000)
             break;
@@ -773,6 +806,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
         }
         AC_DBG("Quit connecting, status(%d)\n", wl);
       }
+bootSts1 = 84;
 
       // It will automatically save the credential which was able to
       // establish current connection.
@@ -792,6 +826,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
     }
     _rfConnect = false;
   }
+bootSts1 = 85;
 
   if (_rfReset) {
     // Reset or disconnect by portal operation result
@@ -808,10 +843,12 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
     if (!_webServer->client()) {
       // Disconnect from the current AP.
       disconnect(false, true);
+bootSts1 = 86;
       while (WiFi.status() == WL_CONNECTED) {
         delay(10);
         yield();
       }
+bootSts1 = 87;
       AC_DBG("Disconnected ");
       if ((WiFi.getMode() & WIFI_AP) && !_apConfig.retainPortal) {
         _stopPortal();
@@ -831,6 +868,8 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
       }
     }
   }
+
+  bootSts1 = 88;
 
   // Handle the update behaviors for attached AutoConnectUpdate.
   // Indicate that not disturb the ticker cycle during OTA.
@@ -862,6 +901,8 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
         _ticker->start(tCycle, tWidth);
     }
   }
+bootSts1 = 89;
+
 }
 
 /**
@@ -1006,13 +1047,13 @@ bool AutoConnectCore<T>::_loadAvailCredential(const char* ssid, const AC_PRINCIP
   if (credential.entries() > 0) {
     // Scan the vicinity only when the saved credentials are existing.
     if (!ssid) {
-#if defined(ARDUINO_ARCH_ESP8266)
-       int8_t  nn = WiFi.scanNetworks(false, true);
-#elif defined(ARDUINO_ARCH_ESP32)
-      int8_t  nn = WiFi.scanNetworks(false, true, true);
-#endif
+      int16_t  nn = _scanNetworks(1);
+//#if defined(ARDUINO_ARCH_ESP8266)
+//       int8_t  nn = WiFi.scanNetworks(false, true);
+//#elif defined(ARDUINO_ARCH_ESP32)
+//      int8_t  nn = WiFi.scanNetworks(false, true, true);
+//#endif
 
-      AC_DBG_DUMB(", %d network(s) found", (int)nn);
       if (nn > 0)
         return _seekCredential(principle, excludeCurrent ? AC_SEEKMODE_NEWONE : AC_SEEKMODE_ANY);
     }
@@ -1651,6 +1692,8 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
   String  appliedSSID = String(reinterpret_cast<char*>(appliedConfig.ssid));
   yield();
 
+  AC_DBG("_waitForConnect Start timeout %ld WiFi.status %d\n", timeout, WiFi.status());
+
   // Connection waiting
   while ((wifiStatus = WiFi.status()) != WL_CONNECTED) {
     yield();
@@ -1671,12 +1714,14 @@ wl_status_t AutoConnectCore<T>::_waitForConnect(unsigned long timeout) {
     if(wifiStatus == WL_NO_SSID_AVAIL || wifiStatus == WL_CONNECT_FAILED)
         break;
 
-    if (ct - pt > 300) {
-      AC_DBG(".%d", wifiStatus);
-      
+    if (ct - pt > max_time_use) {
+      AC_DBG(".%d ", wifiStatus);
+      if(callback_at_maxtime)
+         callback_at_maxtime();      
       pt = millis();
     }
   }
+
   // Fix the connection state.
   _portalStatus &= ~AC_INPROGRESS;
   if (wifiStatus == WL_CONNECTED) {
@@ -1812,5 +1857,47 @@ void AutoConnectCore<T>::_reconnectDelay(const uint32_t ms) {
  */
 template<typename T>
 const String AutoConnectCore<T>::_emptyString = String("");
+
+/**
+ * Scan WiFi networks available in psevdo sync mode with callback
+ * replace WiFi.scanNetworks(false, true, true);  (false = run in sync mode)
+ * @ param async         run in async mode
+ * @ param show_hidden   show hidden networks
+ * @return Number of discovered networks
+ */
+template<typename T>
+int16_t AutoConnectCore<T>::_scanNetworks(int id)
+{ int16_t  sn;
+  unsigned long ct, pt;
+  pt = millis();
+
+  AC_DBG("_scanNetworks (%d) start\n", id);
+
+#if defined(ARDUINO_ARCH_ESP8266)
+  sn = WiFi.scanNetworks(true, true);
+#elif defined(ARDUINO_ARCH_ESP32)
+  sn = WiFi.scanNetworks(true, true, true);
+#endif
+  while  (sn == WIFI_SCAN_RUNNING) 
+  { ct = millis();
+    if (ct - pt > max_time_use) {
+      if(callback_at_maxtime)
+         callback_at_maxtime();      
+      pt = millis();
+    } else {
+      delay(1);
+    }
+    sn = WiFi.scanComplete();
+  } 
+
+  AC_DBG("_scanNetworks end, rc %d\n", sn);
+
+  if(sn == WIFI_SCAN_FAILED)
+    AC_DBG("_scanNetworks failed\n");
+  else
+    AC_DBG("_scanNetworks found %d network(s)\n", sn);
+
+  return sn;
+}
 
 #endif // !_AUTOCONNECTCOREIMPL_HPP_
