@@ -50,6 +50,9 @@ class AutoConnectCore {
   } AC_PORTALSTATE_t;         /**< AutoConnect::begin and handleClient status of the portal during the period. */
   
   int  _ac_wifi_scan_sc = 0;
+    int max_time_use; // max time in ms onConnectedLogic until callback_at_maxtime() is called;  prevent long time spending 
+    void  (* callback_at_maxtime)(void);
+  int16_t _scanNetworks(int id); //Scan WiFi networks available in psevdo sync mode with callback
 
   AutoConnectCore();
   explicit AutoConnectCore(WebServer& webServer);
@@ -85,7 +88,7 @@ class AutoConnectCore {
   bool  saveCredential(const char* filename = "/" AC_IDENTIFIER, U& fs = AUTOCONNECT_APPLIED_FILESYSTEM);
   template<typename U = AUTOCONNECT_APPLIED_FILECLASS>
   bool  restoreCredential(const char* filename = "/" AC_IDENTIFIER, U& fs = AUTOCONNECT_APPLIED_FILESYSTEM);
-
+ 
  protected:
   typedef enum {
     AC_RECONNECT_SET,
@@ -166,7 +169,9 @@ class AutoConnectCore {
   int16_t       _scanCount;
   uint8_t       _connectCh;
   uint8_t       _portalAccess_sts   = 0;
+ public:
   unsigned long _portalAccessPeriod = 0;
+ protected:
   unsigned long _attemptPeriod;
   String        _indelibleSSID;
 
