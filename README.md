@@ -103,6 +103,9 @@ Full documentation is available on https://Hieromon.github.io/AutoConnect, some 
 
 ## Change log
 
+### [1.4.8] Dec. 15, 2025
+* fix + more debug RTC points
+
 ### [1.4.7] Nov. 8, 2025
 * prevent long time spending at waitForConnect() and scanNetworks() without callback function call
 

@@ -400,6 +400,8 @@ bool AutoConnectCore<T>::_configSTA(const IPAddress& ip, const IPAddress& gatewa
   return rc;
 }
 
+extern RTC_NOINIT_ATTR unsigned short int bootSts1;
+
 /**
  * Disconnects the WiFi station and clears the current station settings stored
  * in the ESP core. It contains the current established SSID, password. Any
@@ -412,6 +414,7 @@ bool AutoConnectCore<T>::_configSTA(const IPAddress& ip, const IPAddress& gatewa
 template<typename T>
 void AutoConnectCore<T>::disconnect(const bool wifiOff, const bool clearConfig) {
   WiFi.mode(WIFI_STA);
+bootSts1 = 100;
 
 #if defined(ARDUINO_ARCH_ESP8266)
   wifi_station_disconnect();
@@ -429,6 +432,7 @@ void AutoConnectCore<T>::disconnect(const bool wifiOff, const bool clearConfig) 
 #elif defined(ARDUINO_ARCH_ESP32)
   WiFi.disconnect(wifiOff, clearConfig);
 #endif
+bootSts1 = 101;
 
   while (WiFi.status() == WL_CONNECTED)
     delay(1);
@@ -544,7 +548,6 @@ uint16_t AutoConnectCore<T>::getEEPROMUsedSize(void) {
  * AutoConnect WEB interface.
  * No effects when the web server is not available.
  */
-extern RTC_NOINIT_ATTR unsigned short int bootSts1;
 
 template<typename T>
 void AutoConnectCore<T>::handleClient(void) {
@@ -830,6 +833,7 @@ bootSts1 = 85;
 
   if (_rfReset) {
     // Reset or disconnect by portal operation result
+bootSts1 = 90;
     _stopPortal();
     AC_DBG("Reset\n");
     delay(1000);
@@ -840,8 +844,10 @@ bootSts1 = 85;
   if (_rfDisconnect) {
     // Response for disconnection request is not completed while
     // the session exists.
+bootSts1 = 91;
     if (!_webServer->client()) {
       // Disconnect from the current AP.
+bootSts1 = 92;
       disconnect(false, true);
 bootSts1 = 86;
       while (WiFi.status() == WL_CONNECTED) {
@@ -881,6 +887,7 @@ bootSts1 = 87;
   // The sketch can dynamically control AutoConnectOTA activities
   // during the handleRequest loop.
   _attachOTA();
+bootSts1 = 93;
 
   // Post-process for AutoConnectOTA
   skipPostTicker = _handleOTA();
