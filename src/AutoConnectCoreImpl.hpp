@@ -755,7 +755,6 @@ bootSts1 = 80;
 bootSts1 = 81;
       do {
         _webServer->handleClient();
-        Serial.printf("waitForConnect running %ld\n", millis());
 
       } while (_webServer->client());
 
