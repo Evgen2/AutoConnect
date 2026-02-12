@@ -1110,7 +1110,8 @@ bool AutoConnectCore<T>::_seekCredential(const AC_PRINCIPLE_t principle, const A
   int32_t minRSSI = -120;         // Min value to find the strongest RSSI.
 
   // Seek SSID
-  const char* currentSSID = WiFi.SSID().c_str();
+  String currentSSID_str = WiFi.SSID();   
+  const char* currentSSID = currentSSID_str.c_str();
   for (uint8_t n = 0; n < WiFi.scanComplete(); n++) {
     if (mode == AC_SEEKMODE_CURRENT) {
       // It finds a specific access point that matches the SSID

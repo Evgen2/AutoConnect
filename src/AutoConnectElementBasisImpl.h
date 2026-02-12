@@ -769,7 +769,7 @@ const String AutoConnectSelectBasis::toHTML(void) const {
 
     String  elmOptions;
     uint8_t n = 1;
-    for (const String option : _options) {
+    for (const String &option : _options) {
       size_t  elmOptionLen = AutoConnectElementBasisImpl::_sizeof(elmOptionTempl) + (option.length() * 2) - (AutoConnectElementBasisImpl::_sizeof("%s") * 3);
       PGM_P applySelected = (PGM_P)elmNone;
       if (n++ == selected) {
