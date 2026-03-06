@@ -16,7 +16,13 @@ extern "C" {
 #include <user_interface.h>
 }
 #elif defined(ARDUINO_ARCH_ESP32)
+#ifdef ESP_IDF_VERSION_MAJOR
+#if ESP_IDF_VERSION_MAJOR >= 5
+#include <esp_flash.h>
+#else
 #include <esp_spi_flash.h>
+#endif
+#endif
 #include <WiFi.h>
 #define ENC_TYPE_NONE WIFI_AUTH_OPEN
 #endif
@@ -696,6 +702,9 @@ const char  AutoConnectCore<T>::_PAGE_STAT[] PROGMEM = {
           "<tr>"
             "<td>" AUTOCONNECT_PAGESTATS_CHIPID "</td>"
             "<td>{{CHIP_ID}}</td>"
+          "<tr>"
+            "<td>" AUTOCONNECT_PAGESTATS_CHIPINFO "</td>"
+            "<td>{{CHIP_INFO}}</td>"
           "</tr>"
           "<tr>"
             "<td>" AUTOCONNECT_PAGESTATS_CPUFREQ "</td>"
@@ -994,11 +1003,31 @@ uint32_t AutoConnectCore<T>::_getChipId() {
 }
 
 template<typename T>
+String AutoConnectCore<T>::_getChipInfo() {
+  String info;	
+#if defined(ARDUINO_ARCH_ESP8266)
+to do
+  return ESP.getChipId();
+#elif defined(ARDUINO_ARCH_ESP32)
+  info = ESP.getChipModel();
+  info += "<br>revision " + String(ESP.getChipRevision());
+  info += "<br>core(s) " + String(ESP.getChipCores());
+  return info;
+#endif
+}
+
+template<typename T>
 uint32_t AutoConnectCore<T>::_getFlashChipRealSize() {
 #if defined(ARDUINO_ARCH_ESP8266)
   return ESP.getFlashChipRealSize();
 #elif defined(ARDUINO_ARCH_ESP32)
+#if ESP_IDF_VERSION_MAJOR >= 5
+  uint32_t size_flash_chip;
+  esp_flash_get_size(NULL, &size_flash_chip);
+  return size_flash_chip;
+#else
   return (uint32_t)spi_flash_get_chip_size();
+#endif
 #endif
 }
 
@@ -1165,6 +1194,12 @@ template<typename T>
 String AutoConnectCore<T>::_token_CHIP_ID(PageArgument& args) {
   AC_UNUSED(args);
   return String(_getChipId());
+}
+
+template<typename T>
+String AutoConnectCore<T>::_token_CHIP_INFO(PageArgument& args) {
+  AC_UNUSED(args);
+  return _getChipInfo();
 }
 
 template<typename T>
@@ -1683,6 +1718,7 @@ PageElement* AutoConnectCore<T>::_setupPage(String& uri) {
     elm->addToken(FPSTR("CPU_FREQ"), std::bind(&AutoConnectCore<T>::_token_CPU_FREQ, this, std::placeholders::_1));
     elm->addToken(FPSTR("FLASH_SIZE"), std::bind(&AutoConnectCore<T>::_token_FLASH_SIZE, this, std::placeholders::_1));
     elm->addToken(FPSTR("CHIP_ID"), std::bind(&AutoConnectCore<T>::_token_CHIP_ID, this, std::placeholders::_1));
+    elm->addToken(FPSTR("CHIP_INFO"), std::bind(&AutoConnectCore<T>::_token_CHIP_INFO, this, std::placeholders::_1));
     elm->addToken(FPSTR("FREE_HEAP"), std::bind(&AutoConnectCore<T>::_token_FREE_HEAP, this, std::placeholders::_1));
     elm->addToken(FPSTR("SYSTEM_UPTIME"), std::bind(&AutoConnectCore<T>::_token_SYSTEM_UPTIME, this, std::placeholders::_1));
   }

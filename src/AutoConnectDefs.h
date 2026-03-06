@@ -45,7 +45,6 @@ extern  Serial_Debug Serial_db;
 #endif // SMART_DEBUG
 
 #else  //USE_SMART_DEBUG
-#define AC_DEBUG_PORT Serial
 
 #endif // USE_SMART_DEBUG
 

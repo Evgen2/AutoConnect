@@ -138,6 +138,7 @@ class AutoConnectCore {
   /** Utilities */
   String              _attachMenuItem(const AC_MENUITEM_t item);
   static uint32_t     _getChipId(void);
+  static String       _getChipInfo(void);
   static uint32_t     _getFlashChipRealSize(void);
   static String       _getSystemUptime(void);
   static String       _toMACAddressString(const uint8_t mac[]);
@@ -246,6 +247,7 @@ class AutoConnectCore {
   String _token_BOOTURI(PageArgument& args);
   String _token_CHANNEL(PageArgument& args);
   String _token_CHIP_ID(PageArgument& args);
+  String _token_CHIP_INFO(PageArgument& args);
   String _token_CONFIG_STAIP(PageArgument& args);
   String _token_CPU_FREQ(PageArgument& args);
   String _token_CURRENT_SSID(PageArgument& args);

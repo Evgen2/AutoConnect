@@ -250,10 +250,10 @@ bool AutoConnectCore<T>::begin(const char* ssid, const char* passphrase, unsigne
     if (_apConfig.autoRise) {
 
       // Change WiFi working mode, Enable AP with STA
-#if defined(ARDUINO_ARCH_ESP8266)
-    WiFi.setAutoConnect(false);
-#elif defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) && ((ESP_IDF_VERSION_MAJOR > 3) || ((ESP_IDF_VERSION_MAJOR == 3) && (ESP_IDF_VERSION_MINOR >= 1)))
     WiFi.setAutoReconnect(false);
+#else
+      WiFi.setAutoConnect(false); // Deprecated in ESP32 from ESP-IDF v3.1
 #endif      
       disconnect(false, true);
 
@@ -400,7 +400,7 @@ bool AutoConnectCore<T>::_configSTA(const IPAddress& ip, const IPAddress& gatewa
   return rc;
 }
 
-extern RTC_NOINIT_ATTR unsigned short int bootSts1;
+extern void set_rtc_flag(int sts);
 
 /**
  * Disconnects the WiFi station and clears the current station settings stored
@@ -414,7 +414,7 @@ extern RTC_NOINIT_ATTR unsigned short int bootSts1;
 template<typename T>
 void AutoConnectCore<T>::disconnect(const bool wifiOff, const bool clearConfig) {
   WiFi.mode(WIFI_STA);
-bootSts1 = 100;
+set_rtc_flag(100);
 
 #if defined(ARDUINO_ARCH_ESP8266)
   wifi_station_disconnect();
@@ -432,7 +432,7 @@ bootSts1 = 100;
 #elif defined(ARDUINO_ARCH_ESP32)
   WiFi.disconnect(wifiOff, clearConfig);
 #endif
-bootSts1 = 101;
+set_rtc_flag(101);
 
   while (WiFi.status() == WL_CONNECTED)
     delay(1);
@@ -553,20 +553,20 @@ template<typename T>
 void AutoConnectCore<T>::handleClient(void) {
   // Is there DNS Server process next request?
   if (_dnsServer)
-  { bootSts1 = 21;
+  { set_rtc_flag(21);
 
      _dnsServer->processNextRequest();
   }
   // handleClient valid only at _webServer activated.
   if (_webServer)
-  { bootSts1 = 22;
+  { set_rtc_flag(22);
 
      _webServer->handleClient();
   }
-bootSts1 = 23;
+set_rtc_flag(23);
 
   handleRequest();
-bootSts1 = 24;
+set_rtc_flag(24);
 
 }
 
@@ -580,7 +580,7 @@ static int old_status;
 
 //  if(WiFi.status() != old_status)
 //      Serial_db.printf("!!!!2 handleRequest: WiFi.status = %d\n",WiFi.status());
-bootSts1 = 71;
+set_rtc_flag(71);
 
 // Controls reconnection and portal startup when WiFi is disconnected.
   if (WiFi.status() != WL_CONNECTED) {
@@ -592,16 +592,18 @@ bootSts1 = 71;
     if (_apConfig.retainPortal && _apConfig.autoRise) {
       // Cancel AutoReconnect to ensure detection for queries to penetrate
       // to the internet from a client.
-#if defined(ARDUINO_ARCH_ESP8266)
-    if (WiFi.getAutoConnect())
-#elif defined(ARDUINO_ARCH_ESP32)
+#if defined(ARDUINO_ARCH_ESP32) && ((ESP_IDF_VERSION_MAJOR > 3) || ((ESP_IDF_VERSION_MAJOR == 3) && (ESP_IDF_VERSION_MINOR >= 1)))
     if (WiFi.getAutoReconnect())
-#endif
-      {
-        AC_DBG("!!!!4 setAutoReconnect(false)\n");
+      { AC_DBG("!!!!4 setAutoReconnect(false)\n");
         WiFi.setAutoReconnect(false);
       }
-bootSts1 = 72;
+#else
+      if (WiFi.getAutoConnect()) // Deprecated in ESP32 from ESP-IDF v3.1
+      { AC_DBG("!!!!4 setAutoReconnect(false)\n");
+        WiFi.setAutoReconnect(false);
+      } 
+#endif
+set_rtc_flag(72);
 
       // Restart the responder for the captive portal detection.
       if (!(WiFi.getMode() & WIFI_AP)) {
@@ -615,7 +617,7 @@ bootSts1 = 72;
           _startDNSServer();
       }
     }
-bootSts1 = 73;
+set_rtc_flag(73);
 
     // AutoConnectConfig::reconnectInterval allows a dynamic connection
     // to a known access point without blocking the execution of
@@ -639,7 +641,7 @@ bootSts1 = 73;
           if(( old_status == WL_CONNECTED)|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
 //          if(((_portalAccess_sts == 0) && (old_status == WL_CONNECTED))|| (millis() -  _portalAccessPeriod > AUTOCONNECT_PORTALTIMEOUT * 1000))
           {
-bootSts1 = 74;
+set_rtc_flag(74);
 //AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
 //  _portalAccess_sts, (int)(millis() -  _portalAccessPeriod ), _apConfig.reconnectInterval,  AUTOCONNECT_UNITTIME * 1000);
 AC_DBG("!!!!1 _portalAccess_sts %d  handleRequest millis() -  _portalAccessPeriod = %d _apConfig.reconnectInterval=%d * %d\n",
@@ -680,7 +682,7 @@ AC_DBG("!!!!11 WiFi.scanNetworks sn %d\n", sn);
         _ac_wifi_scan_sc = sc; //
         WiFi.scanDelete();
 AC_DBG("!!!! WiFi.scanDelete\n");
-bootSts1 = 75;
+set_rtc_flag(75);
       }
     }
     old_status = WiFi.status();
@@ -693,13 +695,13 @@ bootSts1 = 75;
 	    IPAddress localIP = WiFi.localIP();
     // The esp8266 station reconnection has a problem and can not get
     // the IP probably. We have to wait until we get the IP.
-bootSts1 = 76;
+set_rtc_flag(76);
 	    while ((uint32_t)localIP == 0UL) {
 	      delay(10);
 	      localIP = WiFi.localIP();
 	    }
 
-bootSts1 = 77;
+set_rtc_flag(77);
 	    AC_DBG_DUMB(" IP:%s", localIP.toString().c_str());
 	    AC_DBG_DUMB(" NETMASK:%s\n", WiFi.subnetMask().toString().c_str());
 	    if(!(_portalStatus & AC_ESTABLISHED))
@@ -712,7 +714,7 @@ bootSts1 = 77;
 
     old_status = WL_CONNECTED;
   }
-bootSts1 = 78;
+set_rtc_flag(78);
 
   // Handling processing requests to AutoConnect.
   if (_rfConnect) {
@@ -726,7 +728,7 @@ bootSts1 = 78;
     // Purge scan results to initialize the asynchronous network scan that
     // will be triggered by disconnection during handleRequests.
     WiFi.scanDelete();
-bootSts1 = 79;
+set_rtc_flag(79);
 
 //--    AC_DBG("2 _connectCh %d _apConfig.channel %d\n", _connectCh, _apConfig.channel);
     // An attempt to establish a new AP.
@@ -745,20 +747,20 @@ bootSts1 = 79;
     _portalStatus &= ~AC_TIMEOUT;
     _portalAccess_sts = 0;
 //  if (WiFi.begin(ssid_c, password_c, ch) != WL_CONNECT_FAILED) { //ch ???
-bootSts1 = 80;
+set_rtc_flag(80);
     if (WiFi.begin(ssid_c, password_c) != WL_CONNECT_FAILED) {
       _portalStatus |= AC_INPROGRESS;
       // Wait for the connection attempt to complete and send a response
       // page to notify the connection result.
       // End the current session to complete a response page transmission.
       _rsConnect = _waitForConnect(_apConfig.beginTimeout);
-bootSts1 = 81;
+set_rtc_flag(81);
       do {
         _webServer->handleClient();
 
       } while (_webServer->client());
 
-bootSts1 = 80;
+set_rtc_flag(80);
 
       if (_rsConnect == WL_CONNECTED) {
         // WLAN successfully connected then release the DNS server.
@@ -772,7 +774,7 @@ bootSts1 = 80;
           AC_DBG("Maintain SoftAP\n");
         }
 
-bootSts1 = 83;
+set_rtc_flag(83);
         // WiFi linked, validate availability
         if (WiFi.BSSID() != NULL) {
           // Successfully conencted
@@ -798,7 +800,7 @@ bootSts1 = 83;
         // Leave station connection completely
         wl_status_t wl = WiFi.status();
         unsigned long tm = millis();
-bootSts1 = 83;
+set_rtc_flag(83);
         while (wl != WL_IDLE_STATUS && wl != WL_DISCONNECTED && wl != WL_NO_SSID_AVAIL) {
           if (millis() - tm > 3000)
             break;
@@ -808,7 +810,7 @@ bootSts1 = 83;
         }
         AC_DBG("Quit connecting, status(%d)\n", wl);
       }
-bootSts1 = 84;
+set_rtc_flag(84);
 
       // It will automatically save the credential which was able to
       // establish current connection.
@@ -828,11 +830,11 @@ bootSts1 = 84;
     }
     _rfConnect = false;
   }
-bootSts1 = 85;
+set_rtc_flag(85);
 
   if (_rfReset) {
     // Reset or disconnect by portal operation result
-bootSts1 = 90;
+set_rtc_flag(90);
     _stopPortal();
     AC_DBG("Reset\n");
     delay(1000);
@@ -843,17 +845,17 @@ bootSts1 = 90;
   if (_rfDisconnect) {
     // Response for disconnection request is not completed while
     // the session exists.
-bootSts1 = 91;
+set_rtc_flag( 91);
     if (!_webServer->client()) {
       // Disconnect from the current AP.
-bootSts1 = 92;
+set_rtc_flag(92);
       disconnect(false, true);
-bootSts1 = 86;
+set_rtc_flag(86);
       while (WiFi.status() == WL_CONNECTED) {
         delay(10);
         yield();
       }
-bootSts1 = 87;
+set_rtc_flag( 87);
       AC_DBG("Disconnected ");
       if ((WiFi.getMode() & WIFI_AP) && !_apConfig.retainPortal) {
         _stopPortal();
@@ -874,7 +876,7 @@ bootSts1 = 87;
     }
   }
 
-  bootSts1 = 88;
+  set_rtc_flag(88);
 
   // Handle the update behaviors for attached AutoConnectUpdate.
   // Indicate that not disturb the ticker cycle during OTA.
@@ -886,7 +888,7 @@ bootSts1 = 87;
   // The sketch can dynamically control AutoConnectOTA activities
   // during the handleRequest loop.
   _attachOTA();
-bootSts1 = 93;
+set_rtc_flag(93);
 
   // Post-process for AutoConnectOTA
   skipPostTicker = _handleOTA();
@@ -907,7 +909,7 @@ bootSts1 = 93;
         _ticker->start(tCycle, tWidth);
     }
   }
-bootSts1 = 89;
+set_rtc_flag(89);
 
 }
 
