@@ -110,7 +110,7 @@ class AutoConnectElementBasis {
   } ACResponse_t;     /**< The Fetch response structures of each AutoConnectElement */
 
   explicit AutoConnectElementBasis(const char* name = "", const char* value = "", const ACPosterior_t post = AC_Tag_None)
-    : name(String(name)), value(String(value)), post(post), enable(true), global(false) {
+    : name(String(name)), value(String(value)), post(post), enable(true),  disabled(false), global(false) {
     _type = AC_Element;
   }
   virtual ~AutoConnectElementBasis() {}
@@ -135,6 +135,7 @@ class AutoConnectElementBasis {
   String  value;      /**< Element value */
   ACPosterior_t post; /**< Tag to be generated with posterior */
   bool    enable;     /**< Enabling the element */
+  bool    disabled;   /**< Disable (Grayed) the element */
   bool    global;     /**< The value available in global scope */
   std::vector<ACResponse_t> responses;  /**< the attribute values to be qualified by the response */
 

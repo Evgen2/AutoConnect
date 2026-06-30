@@ -2,7 +2,16 @@
 
 ## Change log
 
-### [1.5.0] Mar. 6. 2026
+### [1.5.1] Jun. 30, 2026
+* Add disabled attribute for element. Support is currently only available for the checkbox element. Usage:
+```cpp
+ AutoConnectCheckbox CtrlChB()
+
+ CtrlChB.enable = true;
+ CtrlChB.disabled = true;  /**< Disable (Grayed) the element */
+```
+
+### [1.5.0] Mar. 6, 2026
 * Support for ESP32 Arduino Core 3.x by [Cri4Key](https://github.com/Cri4Key) from forks [Autoconnect](https://github.com/Cri4Key/AutoConnect/tree/1.5.0) and [PageBuilder](https://github.com/Cri4Key/PageBuilder/tree/1.6.0)
 * Add dependencie https://github.com/Evgen2/PageBuilder#1.6.0
 * Add Chip Info

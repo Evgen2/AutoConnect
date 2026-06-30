@@ -167,13 +167,19 @@ const String AutoConnectCheckboxBasis::toHTML(void) const {
     // Conversion of the AutoConnectCheckbox element to HTML.
     // <input type="checkbox" id="name" name="name" value="value"[ checked] [onchange="_fe(this)"]>
     // [<label for="name">label</label>]
-    static const char elmCheckboxTempl[] PROGMEM = "%s<input type=\"checkbox\" id=\"%s\" name=\"%s\" value=\"%s\"%s%s>%s";
-    static const char elmLabelTempl[] PROGMEM = "<%s for=\"%s\">%s</%s>";
+//  static const char elmCheckboxTempl[] PROGMEM = "%s<input type=\"checkbox\" id=\"%s\" name=\"%s\" value=\"%s\"%s%s>%s";
+    static const char elmCheckboxTempl[] PROGMEM = "%s<input type=\"checkbox\" id=\"%s\" name=\"%s\" value=\"%s\"%s%s%s>%s";
+//  static const char elmLabelTempl[] PROGMEM = "<%s for=\"%s\">%s</%s>";
+    static const char elmLabelTempl[] PROGMEM = "<%s for=\"%s\"%s>%s</%s>";
     static const char elmNone[] PROGMEM = "";
     static const char tagLabel[] PROGMEM = "label";
     static const char attrChecked[] PROGMEM = " checked";
+    static const char attrDisabled[] PROGMEM = " disabled";
+    static const char attrDisabledStyle[] PROGMEM = " style=\"color: #999999; cursor: not-allowed;\"";
     static const char attrOnChange[] PROGMEM = " onchange=\"" AUTOCONNECT_AUXSCRIPT_FETCH "(this)\"";
     PGM_P applyChecked = (PGM_P)elmNone;
+    PGM_P applyDisabled= (PGM_P)elmNone;
+    PGM_P applyDisabledStyle= (PGM_P)elmNone;
     PGM_P elmLabelPre  = (PGM_P)elmNone;
     PGM_P elmLabelPost = (PGM_P)elmNone;
     char* elmLabel = nullptr;
@@ -181,9 +187,13 @@ const String AutoConnectCheckboxBasis::toHTML(void) const {
 
     if (label.length()) {
       elmLen = ((AutoConnectElementBasisImpl::_sizeof(tagLabel) * 2) + AutoConnectElementBasisImpl::_sizeof(elmLabelTempl) + name.length() + label.length() - (AutoConnectElementBasisImpl::_sizeof("%s") * 4) + sizeof('\0') + 16) & (~0xf);
+      if (disabled) { 
+        applyDisabledStyle = (PGM_P) attrDisabledStyle;
+        elmLen += AutoConnectElementBasisImpl::_sizeof(attrDisabledStyle);
+      }
       elmLabel = new char[elmLen];
       if (elmLabel) {
-        snprintf_P(elmLabel, elmLen, elmLabelTempl, (PGM_P)tagLabel, name.c_str(), label.c_str(), (PGM_P)tagLabel);
+        snprintf_P(elmLabel, elmLen, elmLabelTempl, (PGM_P)tagLabel, name.c_str(), (PGM_P)applyDisabledStyle, label.c_str(), (PGM_P)tagLabel);
         if (labelPosition == AC_Infront)
           elmLabelPre = elmLabel;
         else if (labelPosition == AC_Behind)
@@ -192,14 +202,20 @@ const String AutoConnectCheckboxBasis::toHTML(void) const {
     }
 
     if (checked) {
-      applyChecked = (PGM_P)attrChecked;
+      applyChecked = (PGM_P) attrChecked;
       elmLen += AutoConnectElementBasisImpl::_sizeof(attrChecked);
+    }
+    if (disabled) { 
+      applyDisabled = (PGM_P) attrDisabled;
+      elmLen += AutoConnectElementBasisImpl::_sizeof(attrDisabled);
     }
     const char* onchange = canHandle() ? (PGM_P)attrOnChange : (PGM_P)elmNone;
     elmLen = (elmLen + (AutoConnectElementBasisImpl::_sizeof(tagLabel) * 2) + AutoConnectElementBasisImpl::_sizeof(elmCheckboxTempl) + (name.length() * 2) + value.length() + strlen_P(onchange) - (AutoConnectElementBasisImpl::_sizeof("%s") * 6) + sizeof('\0') + 16) & (~0xf);
     char* elmCheckbox = new char[elmLen];
     if (elmCheckbox) {
-      snprintf_P(elmCheckbox, elmLen, elmCheckboxTempl, elmLabelPre, name.c_str(), name.c_str(), value.c_str(), applyChecked, onchange, elmLabelPost);
+//    snprintf_P(elmCheckbox, elmLen, elmCheckboxTempl, elmLabelPre, name.c_str(), name.c_str(), value.c_str(), applyChecked, onchange, elmLabelPost);
+      snprintf_P(elmCheckbox, elmLen, elmCheckboxTempl, elmLabelPre, name.c_str(), name.c_str(), value.c_str(), applyChecked, onchange, applyDisabled, elmLabelPost);
+
       html = AutoConnectElementBasis::posterior(String(elmCheckbox));
       delete[] elmCheckbox;
     }
